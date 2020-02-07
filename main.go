@@ -23,19 +23,23 @@ func initialize() {
 	go func() {
 		err := <-c
 		log.Println("reconnect: " + err.Error())
-		forever <- true
+		time.Sleep(time.Duration(60) * time.Second)
 		initialize()
+		forever <- true
+		
 	}()
 
 	conn, err := amqp.Dial(config.RabbitConfig["uri"])
 	if err != nil {
 		fmt.Println(err, "Failed to connect to RabbitMQ")
+		return;
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
 		fmt.Println(err, "Failed to register a consumer")
+		return;
 	}
 	defer ch.Close()
 
@@ -50,6 +54,7 @@ func initialize() {
 	)
 	if err != nil {
 		fmt.Println(err, "Failed to register a consumer")
+		return;
 	}
 	QueueListen(ch, q.Name)
 	<-forever
@@ -67,6 +72,8 @@ func QueueListen(ch *amqp.Channel, name string) {
 	)
 	if err != nil {
 		fmt.Println(err, "Failed to register a consumer")
+		// close the channel and handle the channel close event
+		return;
 	}
 
 	go func() {
